@@ -1,66 +1,69 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local crownMeshId = "rbxassetid://10138606900"
 local crownTextureId = "rbxassetid://10138606949"
-
 local crownEnabled = true
 
--- Buat objek mahkota independen di Camera agar tidak terhapus Evade
-local crownPart = Instance.new("Part")
-crownPart.Name = "8BitCrownLarp"
-crownPart.Size = Vector3.new(1, 1, 1)
-crownPart.CanCollide = false
-crownPart.Anchored = true
-crownPart.Massless = true
-crownPart.Transparency = 1
-crownPart.Parent = workspace.CurrentCamera
-
-local specialMesh = Instance.new("SpecialMesh")
-specialMesh.MeshId = crownMeshId
-specialMesh.TextureId = crownTextureId
-specialMesh.Scale = Vector3.new(1.1, 1.1, 1.1)
-specialMesh.Parent = crownPart
-
--- Fungsi untuk mencari lokasi kepala karaktermu di Evade
-local function getHead()
-    local r = workspace:FindFirstChild("Rigs")
-    if r and r:FindFirstChild(LocalPlayer.Name) then 
-        return r[LocalPlayer.Name]:FindFirstChild("Head") 
-    end
-    
-    local c = workspace:FindFirstChild("PlayerCache")
-    if c and c:FindFirstChild(LocalPlayer.Name) and c[LocalPlayer.Name]:FindFirstChild("R6") then 
-        return c[LocalPlayer.Name].R6:FindFirstChild("Head") 
-    end
-    
-    if LocalPlayer.Character then 
-        return LocalPlayer.Character:FindFirstChild("Head") 
-    end
-    
-    return nil
+local function getRigs()
+    local rigs = {}
+    if LocalPlayer.Character then table.insert(rigs, LocalPlayer.Character) end
+    pcall(function()
+        local r = workspace:FindFirstChild("Rigs")
+        if r and r:FindFirstChild(LocalPlayer.Name) then table.insert(rigs, r[LocalPlayer.Name]) end
+    end)
+    pcall(function()
+        local c = workspace:FindFirstChild("PlayerCache")
+        if c and c:FindFirstChild(LocalPlayer.Name) and c[LocalPlayer.Name]:FindFirstChild("R6") then 
+            table.insert(rigs, c[LocalPlayer.Name].R6) 
+        end
+    end)
+    return rigs
 end
 
--- Update posisi mahkota setiap frame (RenderStepped) agar terus ikut kepala
-RunService.RenderStepped:Connect(function()
-    if crownEnabled then
-        local head = getHead()
-        if head then
-            crownPart.Transparency = 0
-            -- Offset 0.7 agar mahkota berada pas di atas kepala (bukan menimpa)
-            crownPart.CFrame = head.CFrame * CFrame.new(0, 0.7, 0)
-        else
-            crownPart.Transparency = 1
-        end
-    else
-        crownPart.Transparency = 1
+local function applyCrown(char)
+    if char:FindFirstChild("8BitCrownLarp") then return end
+    local head = char:FindFirstChild("Head")
+    if not head then return end
+
+    local crown = Instance.new("Part")
+    crown.Name = "8BitCrownLarp"
+    crown.Size = Vector3.new(1, 1, 1)
+    crown.CanCollide = false
+    crown.Massless = true
+    crown.Transparency = 1 
+    
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshId = crownMeshId
+    mesh.TextureId = crownTextureId
+    mesh.Scale = Vector3.new(1.1, 1.1, 1.1)
+    mesh.Parent = crown
+    
+    local weld = Instance.new("Weld")
+    weld.Part0 = head
+    weld.Part1 = crown
+    weld.C0 = CFrame.new(0, 0.7, 0) -- Mengatur posisi pas di atas kepala
+    weld.Parent = crown
+    
+    crown.Parent = char
+end
+
+local function removeCrown(char)
+    local c = char:FindFirstChild("8BitCrownLarp")
+    if c then c:Destroy() end
+end
+
+local function updateAll()
+    for _, rig in ipairs(getRigs()) do
+        pcall(function()
+            if crownEnabled then applyCrown(rig) else removeCrown(rig) end
+        end)
     end
-end)
+end
 
 -- ==========================================
--- STRUKTUR UI
+-- UI 
 -- ==========================================
 pcall(function() 
     local oldUi = LocalPlayer.PlayerGui:FindFirstChild("CrownLarpUI") 
@@ -150,6 +153,7 @@ end
 
 toggleBtn.MouseButton1Click:Connect(function()
     crownEnabled = not crownEnabled
+    updateAll()
     refreshUI()
 end)
 
@@ -161,3 +165,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 refreshUI()
+
+-- Auto-update setiap detik untuk mastikan nempel di semua kloningan rig
+task.spawn(function()
+    while gui.Parent do
+        task.wait(1.5)
+        pcall(updateAll)
+    end
+end)
