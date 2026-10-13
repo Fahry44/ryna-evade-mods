@@ -4,88 +4,54 @@ local LocalPlayer = Players.LocalPlayer
 
 local crownMeshId = "rbxassetid://10138606900"
 local crownTextureId = "rbxassetid://10138606949"
-
 local crownEnabled = true
-
--- Cache untuk menyimpan bentuk kepala asli (Persis metode KenuyLarp)
-local origMeshId = {}
-local origTextureId = {}
-local origScale = {}
-local origFaceTransparency = {}
 
 local function getRigs()
     local rigs = {}
     if LocalPlayer.Character then table.insert(rigs, LocalPlayer.Character) end
-    
     pcall(function()
         local r = workspace:FindFirstChild("Rigs")
         if r and r:FindFirstChild(LocalPlayer.Name) then table.insert(rigs, r[LocalPlayer.Name]) end
     end)
-    
     pcall(function()
         local c = workspace:FindFirstChild("PlayerCache")
         if c and c:FindFirstChild(LocalPlayer.Name) and c[LocalPlayer.Name]:FindFirstChild("R6") then 
             table.insert(rigs, c[LocalPlayer.Name].R6) 
         end
     end)
-    
-    -- Ambil karakter di Menu Evade juga
-    pcall(function()
-        for _, v in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-            if v:IsA("Model") and v.Name == "VisualRigClassic" and v:FindFirstChild("Head") then
-                table.insert(rigs, v)
-            end
-        end
-    end)
-    
     return rigs
 end
 
 local function applyCrown(char)
+    if char:FindFirstChild("8BitCrownLarp") then return end
     local head = char:FindFirstChild("Head")
-    if not head or not head:IsA("BasePart") or head:IsA("MeshPart") then return end
+    if not head then return end
+
+    local crown = Instance.new("Part")
+    crown.Name = "8BitCrownLarp"
+    crown.Size = Vector3.new(1, 1, 1)
+    crown.CanCollide = false
+    crown.Massless = true
+    crown.Transparency = 1 
     
-    local specialMesh = head:FindFirstChildOfClass("SpecialMesh")
-    if specialMesh then
-        -- Simpan data kepala asli sebelum ditimpa
-        if origMeshId[specialMesh] == nil then origMeshId[specialMesh] = specialMesh.MeshId end
-        if origTextureId[specialMesh] == nil then origTextureId[specialMesh] = specialMesh.TextureId end
-        if origScale[specialMesh] == nil then origScale[specialMesh] = specialMesh.Scale end
-        
-        -- Pasang Mahkota 8-Bit
-        specialMesh.MeshType = Enum.MeshType.FileMesh
-        specialMesh.MeshId = crownMeshId
-        specialMesh.TextureId = crownTextureId
-        specialMesh.Scale = Vector3.new(1.1, 1.1, 1.1) -- Skala mahkota
-    end
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshId = crownMeshId
+    mesh.TextureId = crownTextureId
+    mesh.Scale = Vector3.new(1.1, 1.1, 1.1)
+    mesh.Parent = crown
     
-    -- Sembunyikan wajah (Decal)
-    for _, child in ipairs(head:GetChildren()) do
-        if child:IsA("Decal") then
-            if origFaceTransparency[child] == nil then origFaceTransparency[child] = child.Transparency end
-            child.Transparency = 1
-        end
-    end
+    local weld = Instance.new("Weld")
+    weld.Part0 = head
+    weld.Part1 = crown
+    weld.C0 = CFrame.new(0, 0.7, 0) -- Mengatur posisi pas di atas kepala
+    weld.Parent = crown
+    
+    crown.Parent = char
 end
 
 local function removeCrown(char)
-    local head = char:FindFirstChild("Head")
-    if not head then return end
-    
-    local specialMesh = head:FindFirstChildOfClass("SpecialMesh")
-    if specialMesh then
-        -- Kembalikan ke kepala asli
-        if origMeshId[specialMesh] ~= nil then pcall(function() specialMesh.MeshId = origMeshId[specialMesh] end) end
-        if origTextureId[specialMesh] ~= nil then pcall(function() specialMesh.TextureId = origTextureId[specialMesh] end) end
-        if origScale[specialMesh] ~= nil then pcall(function() specialMesh.Scale = origScale[specialMesh] end) end
-    end
-    
-    -- Munculkan kembali wajah
-    for _, child in ipairs(head:GetChildren()) do
-        if child:IsA("Decal") and origFaceTransparency[child] ~= nil then
-            pcall(function() child.Transparency = origFaceTransparency[child] end)
-        end
-    end
+    local c = char:FindFirstChild("8BitCrownLarp")
+    if c then c:Destroy() end
 end
 
 local function updateAll()
@@ -97,7 +63,7 @@ local function updateAll()
 end
 
 -- ==========================================
--- STRUKTUR UI (Sama seperti KenuyLarp)
+-- UI 
 -- ==========================================
 pcall(function() 
     local oldUi = LocalPlayer.PlayerGui:FindFirstChild("CrownLarpUI") 
@@ -199,17 +165,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 refreshUI()
-updateAll()
 
--- Looping Anti-Hilang saat Mati/Revive
+-- Auto-update setiap detik untuk mastikan nempel di semua kloningan rig
 task.spawn(function()
     while gui.Parent do
         task.wait(1.5)
-        if crownEnabled then pcall(updateAll) end
+        pcall(updateAll)
     end
-end)
-
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    if crownEnabled then pcall(updateAll) end
 end)
