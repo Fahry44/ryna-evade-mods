@@ -1,75 +1,61 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local crownMeshId = "rbxassetid://10138606900"
-local crownTextureId = "rbxassetid://10138606949"
 local crownEnabled = true
 
-local function getRigs()
-    local rigs = {}
-    if LocalPlayer.Character then table.insert(rigs, LocalPlayer.Character) end
-    pcall(function()
-        local r = workspace:FindFirstChild("Rigs")
-        if r and r:FindFirstChild(LocalPlayer.Name) then table.insert(rigs, r[LocalPlayer.Name]) end
-    end)
-    pcall(function()
-        local c = workspace:FindFirstChild("PlayerCache")
-        if c and c:FindFirstChild(LocalPlayer.Name) and c[LocalPlayer.Name]:FindFirstChild("R6") then 
-            table.insert(rigs, c[LocalPlayer.Name].R6) 
-        end
-    end)
-    pcall(function()
-        for _, v in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-            if v:IsA("Model") and v.Name == "VisualRigClassic" and v:FindFirstChild("Head") then
-                table.insert(rigs, v)
-            end
-        end
-    end)
-    return rigs
-end
+-- Buat mahkota di Terrain
+local crown = Instance.new("Part")
+crown.Name = "8BitCrownLarp"
+crown.Size = Vector3.new(1, 1, 1)
+crown.CanCollide = false
+crown.Anchored = true 
+crown.Parent = workspace.Terrain
 
-local function applyCrown(char)
-    if char:FindFirstChild("8BitCrownLarp") then return end
-    local head = char:FindFirstChild("Head")
-    if not head then return end
+local mesh = Instance.new("SpecialMesh")
+mesh.MeshId = "rbxassetid://10138606900"
+mesh.TextureId = "rbxassetid://10138606949"
+mesh.Scale = Vector3.new(1.5, 1.5, 1.5) -- Ukuran diperkecil
+mesh.Parent = crown
 
-    local crown = Instance.new("Part")
-    crown.Name = "8BitCrownLarp"
-    crown.Size = Vector3.new(1, 1, 1)
-    crown.CanCollide = false
-    crown.Massless = true
-    crown.Transparency = 1 
-    
-    local mesh = Instance.new("SpecialMesh")
-    mesh.MeshId = crownMeshId
-    mesh.TextureId = crownTextureId
-    -- Ukuran diperbesar di sini
-    mesh.Scale = Vector3.new(3.5, 3.5, 3.5)
-    mesh.Parent = crown
-    
-    local weld = Instance.new("Weld")
-    weld.Part0 = head
-    weld.Part1 = crown
-    -- Posisi tinggi di atas kepala
-    weld.C0 = CFrame.new(0, 0.7, 0)
-    weld.Parent = crown
-    
-    crown.Parent = char
-end
+-- Buat efek partikel api 8-bit
+local fire = Instance.new("ParticleEmitter")
+fire.Texture = "rbxassetid://10126369396"
+fire.Rate = 15
+fire.Lifetime = NumberRange.new(0.5, 1)
+fire.Speed = NumberRange.new(1, 3)
+fire.LightEmission = 0.8
+fire.Size = NumberSequence.new(0.8, 0)
+fire.Parent = crown
 
-local function removeCrown(char)
-    local c = char:FindFirstChild("8BitCrownLarp")
-    if c then c:Destroy() end
-end
-
-local function updateAll()
-    for _, rig in ipairs(getRigs()) do
-        pcall(function()
-            if crownEnabled then applyCrown(rig) else removeCrown(rig) end
-        end)
+-- Loop posisi ngikutin kepala
+RunService.RenderStepped:Connect(function()
+    if not crownEnabled then
+        crown.Transparency = 1
+        fire.Enabled = false
+        crown.CFrame = CFrame.new(0, 9999, 0)
+        return
     end
-end
+
+    local head
+    local rigs = workspace:FindFirstChild("Rigs")
+    if rigs and rigs:FindFirstChild(LocalPlayer.Name) then
+        head = rigs[LocalPlayer.Name]:FindFirstChild("Head")
+    elseif LocalPlayer.Character then
+        head = LocalPlayer.Character:FindFirstChild("Head")
+    end
+
+    if head then
+        crown.Transparency = 0
+        fire.Enabled = true
+        crown.CFrame = head.CFrame * CFrame.new(0, 0.8, 0) -- Tinggi disesuaikan
+    else
+        crown.Transparency = 1
+        fire.Enabled = false
+        crown.CFrame = CFrame.new(0, 9999, 0)
+    end
+end)
 
 -- ==========================================
 -- STRUKTUR UI
@@ -162,7 +148,6 @@ end
 
 toggleBtn.MouseButton1Click:Connect(function()
     crownEnabled = not crownEnabled
-    updateAll()
     refreshUI()
 end)
 
@@ -174,10 +159,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 refreshUI()
-
-task.spawn(function()
-    while gui.Parent do
-        task.wait(1.5)
-        pcall(updateAll)
-    end
-end)
