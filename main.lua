@@ -19,6 +19,13 @@ local function getRigs()
             table.insert(rigs, c[LocalPlayer.Name].R6) 
         end
     end)
+    pcall(function()
+        for _, v in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+            if v:IsA("Model") and v.Name == "VisualRigClassic" and v:FindFirstChild("Head") then
+                table.insert(rigs, v)
+            end
+        end
+    end)
     return rigs
 end
 
@@ -37,13 +44,15 @@ local function applyCrown(char)
     local mesh = Instance.new("SpecialMesh")
     mesh.MeshId = crownMeshId
     mesh.TextureId = crownTextureId
-    mesh.Scale = Vector3.new(1.1, 1.1, 1.1)
+    -- Ukuran diperbesar di sini
+    mesh.Scale = Vector3.new(3.5, 3.5, 3.5)
     mesh.Parent = crown
     
     local weld = Instance.new("Weld")
     weld.Part0 = head
     weld.Part1 = crown
-    weld.C0 = CFrame.new(0, 0.7, 0) -- Mengatur posisi pas di atas kepala
+    -- Posisi tinggi di atas kepala
+    weld.C0 = CFrame.new(0, 0.7, 0)
     weld.Parent = crown
     
     crown.Parent = char
@@ -63,7 +72,7 @@ local function updateAll()
 end
 
 -- ==========================================
--- UI 
+-- STRUKTUR UI
 -- ==========================================
 pcall(function() 
     local oldUi = LocalPlayer.PlayerGui:FindFirstChild("CrownLarpUI") 
@@ -166,7 +175,6 @@ end)
 
 refreshUI()
 
--- Auto-update setiap detik untuk mastikan nempel di semua kloningan rig
 task.spawn(function()
     while gui.Parent do
         task.wait(1.5)
