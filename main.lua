@@ -7,11 +7,10 @@ local crownTextureId = "rbxassetid://10138606949"
 
 local crownEnabled = true
 
--- Cache untuk menyimpan bentuk kepala asli
+-- Cache untuk menyimpan bentuk kepala asli (Persis metode KenuyLarp)
 local origMeshId = {}
 local origTextureId = {}
 local origScale = {}
-local origOffset = {} -- Tambahan buat reset posisi
 local origFaceTransparency = {}
 
 local function getRigs()
@@ -30,6 +29,7 @@ local function getRigs()
         end
     end)
     
+    -- Ambil karakter di Menu Evade juga
     pcall(function()
         for _, v in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
             if v:IsA("Model") and v.Name == "VisualRigClassic" and v:FindFirstChild("Head") then
@@ -51,18 +51,12 @@ local function applyCrown(char)
         if origMeshId[specialMesh] == nil then origMeshId[specialMesh] = specialMesh.MeshId end
         if origTextureId[specialMesh] == nil then origTextureId[specialMesh] = specialMesh.TextureId end
         if origScale[specialMesh] == nil then origScale[specialMesh] = specialMesh.Scale end
-        if origOffset[specialMesh] == nil then origOffset[specialMesh] = specialMesh.Offset end
         
         -- Pasang Mahkota 8-Bit
         specialMesh.MeshType = Enum.MeshType.FileMesh
         specialMesh.MeshId = crownMeshId
         specialMesh.TextureId = crownTextureId
-        
-        -- UBAH DI SINI KALAU MAU LEBIH BESAR/KECIL
-        specialMesh.Scale = Vector3.new(3.5, 3.5, 3.5) 
-        
-        -- UBAH DI SINI BIAR POSISINYA NAIK/TURUN (Angka tengah = tinggi)
-        specialMesh.Offset = Vector3.new(0, 0.7, 0) 
+        specialMesh.Scale = Vector3.new(1.1, 1.1, 1.1) -- Skala mahkota
     end
     
     -- Sembunyikan wajah (Decal)
@@ -84,7 +78,6 @@ local function removeCrown(char)
         if origMeshId[specialMesh] ~= nil then pcall(function() specialMesh.MeshId = origMeshId[specialMesh] end) end
         if origTextureId[specialMesh] ~= nil then pcall(function() specialMesh.TextureId = origTextureId[specialMesh] end) end
         if origScale[specialMesh] ~= nil then pcall(function() specialMesh.Scale = origScale[specialMesh] end) end
-        if origOffset[specialMesh] ~= nil then pcall(function() specialMesh.Offset = origOffset[specialMesh] end) end
     end
     
     -- Munculkan kembali wajah
@@ -104,7 +97,7 @@ local function updateAll()
 end
 
 -- ==========================================
--- STRUKTUR UI
+-- STRUKTUR UI (Sama seperti KenuyLarp)
 -- ==========================================
 pcall(function() 
     local oldUi = LocalPlayer.PlayerGui:FindFirstChild("CrownLarpUI") 
@@ -208,6 +201,7 @@ end)
 refreshUI()
 updateAll()
 
+-- Looping Anti-Hilang saat Mati/Revive
 task.spawn(function()
     while gui.Parent do
         task.wait(1.5)
