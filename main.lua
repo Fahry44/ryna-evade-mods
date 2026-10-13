@@ -1,14 +1,6 @@
 local player = game:GetService("Players").LocalPlayer
-local crownId = "rbxassetid://10159600649"
-local crownAccessory = nil
-
--- Load aksesoris dari ID Katalog
-pcall(function()
-    local objs = game:GetObjects(crownId)
-    if objs and objs[1] then
-        crownAccessory = objs[1]
-    end
-end)
+local meshId = "rbxassetid://10138606900"
+local textureId = "rbxassetid://10138606949"
 
 local function getEvadeRigs()
     local rigs = {}
@@ -21,29 +13,34 @@ local function getEvadeRigs()
 end
 
 local function applyCrown(char)
-    if not crownAccessory then return end
-    if char:FindFirstChild(crownAccessory.Name) then return end -- Cek agar tidak tertumpuk
+    if char:FindFirstChild("8BitCrown") then return end
     
     local head = char:FindFirstChild("Head")
-    if head then
-        local clone = crownAccessory:Clone()
-        local handle = clone:FindFirstChild("Handle")
-        
-        if handle then
-            -- Atur posisi di atas kepala (Y = 0.5, sesuaikan jika kurang pas)
-            handle.CFrame = head.CFrame * CFrame.new(0, 0.5, 0) 
-            
-            local weld = Instance.new("WeldConstraint")
-            weld.Part0 = head
-            weld.Part1 = handle
-            weld.Parent = handle
-            
-            clone.Parent = char
-        end
-    end
+    if not head then return end
+
+    local crown = Instance.new("Part")
+    crown.Name = "8BitCrown"
+    crown.Size = Vector3.new(1, 1, 1)
+    crown.CanCollide = false
+    crown.Massless = true
+    
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshId = meshId
+    mesh.TextureId = textureId
+    mesh.Scale = Vector3.new(1, 1, 1)
+    mesh.Parent = crown
+    
+    -- Atur posisi (Y=0.6 untuk di atas kepala)
+    crown.CFrame = head.CFrame * CFrame.new(0, 0.6, 0)
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = head
+    weld.Part1 = crown
+    weld.Parent = crown
+    
+    crown.Parent = char
 end
 
--- Looping auto-pasang saat revive/mati
 task.spawn(function()
     while task.wait(1.5) do
         for _, rig in ipairs(getEvadeRigs()) do
